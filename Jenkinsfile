@@ -6,7 +6,7 @@ pipeline {
         stage('Clone Repository') {
             steps {
                 git branch: 'main',
-                url: 'https://github.com/TU-USUARIO/TU-REPO.git'
+                url: 'https://github.com/joaquinct11/demo-api-aws.git'
             }
         }
 
