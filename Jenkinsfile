@@ -1,28 +1,64 @@
 pipeline {
     agent any
 
+    environment {
+        APP_NAME = "springboot-api"
+    }
+
     stages {
 
-        stage('Clone Repository') {
+        stage('Checkout') {
             steps {
-                git branch: 'main',
-                url: 'https://github.com/joaquinct11/demo-api-aws.git'
+                checkout scm
+            }
+        }
+
+        stage('Prepare') {
+            steps {
+                sh 'chmod +x gradlew'
             }
         }
 
         stage('Build') {
             steps {
-                sh './gradlew build'
+                sh './gradlew clean build -x test'
             }
         }
 
-        stage('Run Jar') {
+        stage('Archive Artifact') {
+            steps {
+                archiveArtifacts artifacts: 'build/libs/*.jar', fingerprint: true
+            }
+        }
+
+        stage('Deploy') {
             steps {
                 sh '''
-                pkill -f jar || true
-                nohup java -jar build/libs/*.jar > app.log 2>&1 &
+                echo "Stopping previous app if running..."
+                pkill -f ${APP_NAME} || true
+
+                echo "Starting new version..."
+                JAR=$(ls build/libs/*.jar | head -n 1)
+
+                nohup java -jar $JAR > app.log 2>&1 &
                 '''
             }
+        }
+
+    }
+
+    post {
+
+        success {
+            echo '✅ Build and deployment successful!'
+        }
+
+        failure {
+            echo '❌ Pipeline failed.'
+        }
+
+        always {
+            echo 'Pipeline finished.'
         }
 
     }
