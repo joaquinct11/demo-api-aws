@@ -1,6 +1,11 @@
 pipeline {
     agent any
 
+    options {
+        skipDefaultCheckout(true)
+        buildDiscarder(logRotator(numToKeepStr: '10'))
+    }
+
     environment {
         APP_NAME = "springboot-api"
     }
@@ -15,13 +20,19 @@ pipeline {
 
         stage('Prepare') {
             steps {
-                sh 'chmod +x gradlew'
+                sh '''
+                echo "Preparing environment..."
+                chmod +x gradlew
+                '''
             }
         }
 
         stage('Build') {
             steps {
-                sh './gradlew clean build -x test'
+                sh '''
+                echo "Building application..."
+                ./gradlew clean build -x test --no-daemon --max-workers=1
+                '''
             }
         }
 
@@ -34,13 +45,15 @@ pipeline {
         stage('Deploy') {
             steps {
                 sh '''
-                echo "Stopping previous app if running..."
+                echo "Stopping previous application..."
                 pkill -f ${APP_NAME} || true
 
                 echo "Starting new version..."
                 JAR=$(ls build/libs/*.jar | head -n 1)
 
                 nohup java -jar $JAR > app.log 2>&1 &
+
+                echo "Application started"
                 '''
             }
         }
@@ -48,18 +61,14 @@ pipeline {
     }
 
     post {
-
         success {
-            echo '✅ Build and deployment successful!'
+            echo "✅ Deployment successful"
         }
-
         failure {
-            echo '❌ Pipeline failed.'
+            echo "❌ Pipeline failed"
         }
-
         always {
-            echo 'Pipeline finished.'
+            echo "Pipeline finished"
         }
-
     }
 }
