@@ -1,4 +1,5 @@
 pipeline {
+
     agent any
 
     environment {
@@ -8,16 +9,11 @@ pipeline {
         EC2_HOST = "44.210.133.71"
         EC2_USER = "ubuntu"
         SSH_KEY = "/var/jenkins_home/spring-key.pem"
-
-        JAR_FILE = "build/libs/demo-api-0.0.1-SNAPSHOT.jar"
-        REMOTE_APP_DIR = "/home/ubuntu/app"
-        REMOTE_JAR = "${REMOTE_APP_DIR}/app.jar"
-        REMOTE_LOG = "${REMOTE_APP_DIR}/app.log"
     }
 
     stages {
 
-        stage('Checkout Code') {
+        stage('Checkout') {
             steps {
                 git branch: 'main',
                         url: 'https://github.com/joaquinct11/demo-api-aws.git'
@@ -30,61 +26,40 @@ pipeline {
             }
         }
 
-        stage('Check Java Version') {
-            steps {
-                sh 'java -version'
-            }
-        }
-
-        stage('Build Project') {
+        stage('Build') {
             steps {
                 sh './gradlew clean build -x test'
             }
         }
 
-        stage('Verify Artifact') {
+        stage('Deploy to EC2') {
             steps {
-                sh 'ls -l build/libs'
-            }
-        }
 
-        stage('Copy JAR to EC2') {
-            steps {
                 sh """
-                ssh -i ${SSH_KEY} -o StrictHostKeyChecking=no ${EC2_USER}@${EC2_HOST} "mkdir -p ${REMOTE_APP_DIR}"
-                scp -i ${SSH_KEY} -o StrictHostKeyChecking=no ${JAR_FILE} ${EC2_USER}@${EC2_HOST}:${REMOTE_JAR}
+                scp -i ${SSH_KEY} -o StrictHostKeyChecking=no \
+                build/libs/demo-api-0.0.1-SNAPSHOT.jar \
+                ${EC2_USER}@${EC2_HOST}:/home/ubuntu/app/app.jar
+                """
+
+                sh """
+                ssh -i ${SSH_KEY} -o StrictHostKeyChecking=no ${EC2_USER}@${EC2_HOST} "
+                
+                pkill -f app.jar || true
+                
+                nohup java -jar /home/ubuntu/app/app.jar > /home/ubuntu/app/app.log 2>&1 &
+                
+                "
                 """
             }
         }
-
-        stage('Deploy in EC2') {
-            steps {
-                sh """
-                ssh -i ${SSH_KEY} -o StrictHostKeyChecking=no ${EC2_USER}@${EC2_HOST} '
-                    echo "Stopping old application..."
-                    pkill -f app.jar || true
-
-                    echo "Starting new application..."
-                    nohup java -jar ${REMOTE_JAR} > ${REMOTE_LOG} 2>&1 &
-
-                    echo "Deployment finished"
-                '
-                """
-            }
-        }
-
     }
 
     post {
-
         success {
             echo '✅ CI/CD SUCCESS - Application deployed'
         }
-
         failure {
-            echo '❌ CI/CD FAILED'
+            echo '❌ PIPELINE FAILED'
         }
-
     }
-
 }
