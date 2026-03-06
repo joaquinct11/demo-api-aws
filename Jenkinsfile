@@ -41,14 +41,11 @@ pipeline {
                 ${EC2_USER}@${EC2_HOST}:/home/ubuntu/app/app.jar
                 """
 
-                sh """
-                ssh -i ${SSH_KEY} -o StrictHostKeyChecking=no ${EC2_USER}@${EC2_HOST} "
-                
-                pkill -f app.jar || true
-                
-                nohup java -jar /home/ubuntu/app/app.jar > /home/ubuntu/app/app.log 2>&1 &
-                
-                "
+                        sh """
+                ssh -i ${SSH_KEY} -o StrictHostKeyChecking=no ${EC2_USER}@${EC2_HOST} '
+                    pkill -f app.jar || true
+                    nohup java -jar /home/ubuntu/app/app.jar > /home/ubuntu/app/app.log 2>&1 &
+                '
                 """
             }
         }
