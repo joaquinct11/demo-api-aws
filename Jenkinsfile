@@ -5,8 +5,8 @@ pipeline {
     environment {
         JAVA_HOME = "/usr/lib/jvm/java-21-openjdk-amd64"
         PATH = "${JAVA_HOME}/bin:${env.PATH}"
-        EC2_HOST = "18.XXX.XXX.XXX"
-        EC2_USER = "deploy"
+        EC2_HOST = "44.210.133.71"
+        EC2_USER = "ubuntu"
     }
 
     stages {
