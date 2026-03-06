@@ -1,16 +1,13 @@
 pipeline {
     agent any
-
     environment {
         EC2_IP = "18.232.181.253"
     }
 
     stages {
-
         stage('Checkout') {
             steps {
-                git branch: 'main',
-                        url: 'https://github.com/joaquinct11/demo-api-aws.git'
+                git branch: 'main', url: 'https://github.com/joaquinct11/demo-api-aws.git'
             }
         }
 
@@ -24,28 +21,30 @@ pipeline {
         stage('Prepare Jar') {
             steps {
                 script {
-                    // Tomar el primer jar que no sea "plain"
-                    def jars = sh(script: "ls build/libs/*.jar | grep -v plain", returnStdout: true).trim().split("\n")
-                    def jarToDeploy = jars[0]
-                    echo "Jar to deploy: ${jarToDeploy}"
-                    env.JAR_FILE = jarToDeploy
+                    // Tomamos el .jar que no tiene "plain" en el nombre
+                    def jarFiles = sh(script: "ls build/libs/*.jar | grep -v plain", returnStdout: true).trim()
+                    env.JAR_FILE = jarFiles.split("\n")[0]
+                    echo "Jar to deploy: ${env.JAR_FILE}"
                 }
             }
         }
 
         stage('Deploy to EC2') {
             steps {
+                // Aquí usamos la credencial de Jenkins
                 sshagent(['ec2-key']) {
                     sh """
-                        # Copiar jar
-                        scp -o StrictHostKeyChecking=no build/libs/demo-api-0.0.1-SNAPSHOT.jar ubuntu@${EC2_IP}:/home/ubuntu/app/app.jar
-                
-                        # Ejecutar jar en background
-                        ssh -o StrictHostKeyChecking=no ubuntu@${EC2_IP} '
+                        echo 'Creando carpeta en EC2...'
+                        ssh -o StrictHostKeyChecking=no ubuntu@$EC2_IP "mkdir -p /home/ubuntu/app/"
+
+                        echo 'Copiando jar al EC2...'
+                        scp -o StrictHostKeyChecking=no ${env.JAR_FILE} ubuntu@$EC2_IP:/home/ubuntu/app/app.jar
+
+                        echo 'Reiniciando la app...'
+                        ssh -o StrictHostKeyChecking=no ubuntu@$EC2_IP "
                             pkill -f app.jar || true
                             nohup java -jar /home/ubuntu/app/app.jar > /home/ubuntu/app/app.log 2>&1 &
-                            exit 0
-                        '
+                        "
                     """
                 }
             }
