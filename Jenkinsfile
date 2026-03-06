@@ -59,17 +59,15 @@ pipeline {
         stage('Deploy in EC2') {
             steps {
                 sh """
-                ssh -i ${SSH_KEY} -o StrictHostKeyChecking=no ${EC2_USER}@${EC2_HOST} << 'EOF'
+                ssh -i ${SSH_KEY} -o StrictHostKeyChecking=no ${EC2_USER}@${EC2_HOST} "
+                    echo 'Stopping old application...'
+                    pkill -f app.jar || true
 
-                echo "Stopping old application..."
-                pkill -f app.jar || true
+                    echo 'Starting new application...'
+                    nohup java -jar /home/ubuntu/app/app.jar > /home/ubuntu/app/app.log 2>&1 &
 
-                echo "Starting new application..."
-                nohup java -jar /home/ubuntu/app/app.jar > /home/ubuntu/app/app.log 2>&1 &
-
-                echo "Deployment finished"
-
-                EOF
+                    echo 'Deployment finished'
+                "
                 """
             }
         }
