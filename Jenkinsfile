@@ -25,7 +25,7 @@ pipeline {
                 sshagent(['ec2-key']) {
                     sh '''
                     # Obtener el primer .jar generado
-                    JAR_FILE=$(ls build/libs/*.jar | head -n 1)
+                    JAR_FILE=build/libs/demo-api-0.0.1-SNAPSHOT.jar
                     echo "Deploying $JAR_FILE to $EC2_IP"
 
                     # Copiar el jar a EC2
