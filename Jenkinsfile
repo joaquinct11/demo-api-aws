@@ -24,14 +24,11 @@ pipeline {
             steps {
                 sshagent(['ec2-key']) {
                     sh '''
-                    # Obtener el primer .jar generado
-                    JAR_FILE=build/libs/demo-api-0.0.1-SNAPSHOT.jar
+                    JAR_FILE=$(ls build/libs/*-SNAPSHOT.jar | grep -v plain | head -n 1)
                     echo "Deploying $JAR_FILE to $EC2_IP"
-
-                    # Copiar el jar a EC2
+                
                     scp -o StrictHostKeyChecking=no $JAR_FILE ubuntu@$EC2_IP:/home/ubuntu/app/app.jar
-
-                    # Detener la app anterior y ejecutar la nueva
+                
                     ssh -o StrictHostKeyChecking=no ubuntu@$EC2_IP "
                         pkill -f app.jar || true
                         nohup java -jar /home/ubuntu/app/app.jar > /home/ubuntu/app/app.log 2>&1 &
