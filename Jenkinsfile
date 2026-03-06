@@ -1,59 +1,45 @@
 pipeline {
     agent any
 
-    options {
-        skipDefaultCheckout(true)
-        buildDiscarder(logRotator(numToKeepStr: '10'))
-    }
-
     environment {
         APP_NAME = "springboot-api"
+        JAVA_HOME = "/usr/lib/jvm/java-21-openjdk-amd64"
+        PATH = "${JAVA_HOME}/bin:${env.PATH}"
     }
 
     stages {
 
         stage('Checkout') {
-            steps {
-                checkout scm
-            }
+            steps { checkout scm }
         }
 
         stage('Prepare') {
+            steps { sh 'chmod +x gradlew' }
+        }
+
+        stage('Check Java') {
             steps {
-                sh '''
-                echo "Preparing environment..."
-                chmod +x gradlew
-                '''
+                sh 'java -version'
+                sh 'javac -version'
             }
         }
 
         stage('Build') {
             steps {
-                sh '''
-                echo "Building application..."
-                ./gradlew clean build -x test --no-daemon --max-workers=1
-                '''
+                sh './gradlew clean build -x test --no-daemon --max-workers=1'
             }
         }
 
         stage('Archive Artifact') {
-            steps {
-                archiveArtifacts artifacts: 'build/libs/*.jar', fingerprint: true
-            }
+            steps { archiveArtifacts artifacts: 'build/libs/*.jar', fingerprint: true }
         }
 
         stage('Deploy') {
             steps {
                 sh '''
-                echo "Stopping previous application..."
                 pkill -f ${APP_NAME} || true
-
-                echo "Starting new version..."
                 JAR=$(ls build/libs/*.jar | head -n 1)
-
                 nohup java -jar $JAR > app.log 2>&1 &
-
-                echo "Application started"
                 '''
             }
         }
@@ -61,14 +47,8 @@ pipeline {
     }
 
     post {
-        success {
-            echo "✅ Deployment successful"
-        }
-        failure {
-            echo "❌ Pipeline failed"
-        }
-        always {
-            echo "Pipeline finished"
-        }
+        success { echo '✅ Build and deployment successful!' }
+        failure { echo '❌ Pipeline failed.' }
+        always { echo 'Pipeline finished.' }
     }
 }
