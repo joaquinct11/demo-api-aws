@@ -36,18 +36,16 @@ pipeline {
         stage('Deploy to EC2') {
             steps {
                 sshagent(['ec2-key']) {
-                    // Crear carpeta en EC2
-                    sh "ssh -o StrictHostKeyChecking=no ubuntu@${EC2_IP} 'mkdir -p /home/ubuntu/app/'"
-
-                    // Copiar el jar
-                    sh "scp -o StrictHostKeyChecking=no ${env.JAR_FILE} ubuntu@${EC2_IP}:/home/ubuntu/app/app.jar"
-
-                    // Detener la app anterior y ejecutar la nueva
                     sh """
-                    ssh -o StrictHostKeyChecking=no ubuntu@${EC2_IP} '
-                        pkill -f app.jar || true
-                        nohup java -jar /home/ubuntu/app/app.jar > /home/ubuntu/app/app.log 2>&1 &
-                    '
+                        # Copiar jar
+                        scp -o StrictHostKeyChecking=no build/libs/demo-api-0.0.1-SNAPSHOT.jar ubuntu@${EC2_IP}:/home/ubuntu/app/app.jar
+                
+                        # Ejecutar jar en background
+                        ssh -o StrictHostKeyChecking=no ubuntu@${EC2_IP} '
+                            pkill -f app.jar || true
+                            nohup java -jar /home/ubuntu/app/app.jar > /home/ubuntu/app/app.log 2>&1 &
+                            exit 0
+                        '
                     """
                 }
             }
