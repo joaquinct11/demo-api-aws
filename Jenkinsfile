@@ -9,12 +9,10 @@ pipeline {
 
     stages {
 
-        stage('Checkout') {
-            steps { checkout scm }
-        }
-
         stage('Prepare') {
-            steps { sh 'chmod +x gradlew' }
+            steps {
+                sh 'chmod +x gradlew'
+            }
         }
 
         stage('Check Java') {
@@ -26,19 +24,30 @@ pipeline {
 
         stage('Build') {
             steps {
-                sh './gradlew clean build -x test --no-daemon --max-workers=1'
+                sh './gradlew clean build -x test --no-daemon'
             }
         }
 
         stage('Archive Artifact') {
-            steps { archiveArtifacts artifacts: 'build/libs/*.jar', fingerprint: true }
+            steps {
+                archiveArtifacts artifacts: 'build/libs/*.jar', fingerprint: true
+            }
         }
 
         stage('Deploy') {
             steps {
                 sh '''
-                pkill -f ${APP_NAME} || true
+                PID=$(pgrep -f ${APP_NAME} || true)
+
+                if [ ! -z "$PID" ]; then
+                    echo "Stopping process $PID"
+                    kill -9 $PID
+                else
+                    echo "No running process"
+                fi
+
                 JAR=$(ls build/libs/*.jar | head -n 1)
+                echo "Starting application..."
                 nohup java -jar $JAR > app.log 2>&1 &
                 '''
             }
