@@ -1,5 +1,4 @@
 pipeline {
-
     agent any
 
     environment {
@@ -11,6 +10,9 @@ pipeline {
         SSH_KEY = "/var/jenkins_home/spring-key.pem"
 
         JAR_FILE = "build/libs/demo-api-0.0.1-SNAPSHOT.jar"
+        REMOTE_APP_DIR = "/home/ubuntu/app"
+        REMOTE_JAR = "${REMOTE_APP_DIR}/app.jar"
+        REMOTE_LOG = "${REMOTE_APP_DIR}/app.log"
     }
 
     stages {
@@ -49,9 +51,8 @@ pipeline {
         stage('Copy JAR to EC2') {
             steps {
                 sh """
-                scp -i ${SSH_KEY} -o StrictHostKeyChecking=no \
-                ${JAR_FILE} \
-                ${EC2_USER}@${EC2_HOST}:/home/ubuntu/app/app.jar
+                ssh -i ${SSH_KEY} -o StrictHostKeyChecking=no ${EC2_USER}@${EC2_HOST} "mkdir -p ${REMOTE_APP_DIR}"
+                scp -i ${SSH_KEY} -o StrictHostKeyChecking=no ${JAR_FILE} ${EC2_USER}@${EC2_HOST}:${REMOTE_JAR}
                 """
             }
         }
@@ -59,15 +60,15 @@ pipeline {
         stage('Deploy in EC2') {
             steps {
                 sh """
-                ssh -i ${SSH_KEY} -o StrictHostKeyChecking=no ${EC2_USER}@${EC2_HOST} "
-                    echo 'Stopping old application...'
+                ssh -i ${SSH_KEY} -o StrictHostKeyChecking=no ${EC2_USER}@${EC2_HOST} '
+                    echo "Stopping old application..."
                     pkill -f app.jar || true
 
-                    echo 'Starting new application...'
-                    nohup java -jar /home/ubuntu/app/app.jar > /home/ubuntu/app/app.log 2>&1 &
+                    echo "Starting new application..."
+                    nohup java -jar ${REMOTE_JAR} > ${REMOTE_LOG} 2>&1 &
 
-                    echo 'Deployment finished'
-                "
+                    echo "Deployment finished"
+                '
                 """
             }
         }
