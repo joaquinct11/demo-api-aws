@@ -1,7 +1,38 @@
-stage('Deploy to EC2') {
-    steps {
-        sshagent(['ec2-key']) {
-            sh '''
+pipeline {
+    agent any
+    environment {
+        EC2_IP = "18.232.181.253"
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                git branch: 'main', url: 'https://github.com/joaquinct11/demo-api-aws.git'
+            }
+        }
+
+        stage('Build') {
+            steps {
+                sh 'chmod +x gradlew'
+                sh './gradlew clean build'
+            }
+        }
+
+        stage('Prepare Jar') {
+            steps {
+                script {
+                    // Tomamos el .jar que no tiene "plain" en el nombre
+                    def jarFiles = sh(script: "ls build/libs/*.jar | grep -v plain", returnStdout: true).trim()
+                    env.JAR_FILE = jarFiles.split("\n")[0]
+                    echo "Jar to deploy: ${env.JAR_FILE}"
+                }
+            }
+        }
+
+        stage('Deploy to EC2') {
+            steps {
+                sshagent(['ec2-key']) {
+                    sh '''
                 echo "Creando carpeta en EC2..."
                 ssh -o StrictHostKeyChecking=no ubuntu@18.232.181.253 "mkdir -p /home/ubuntu/app/"
                 
@@ -14,6 +45,8 @@ stage('Deploy to EC2') {
                     nohup java -jar /home/ubuntu/app/app.jar > /home/ubuntu/app/app.log 2>&1 &
                 "
             '''
+                }
+            }
         }
     }
 }
