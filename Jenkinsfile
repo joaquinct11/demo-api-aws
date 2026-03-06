@@ -5,8 +5,13 @@ pipeline {
     environment {
         JAVA_HOME = "/usr/lib/jvm/java-21-openjdk-amd64"
         PATH = "${JAVA_HOME}/bin:${env.PATH}"
+
         EC2_HOST = "44.210.133.71"
         EC2_USER = "ubuntu"
+
+        SSH_KEY = "/var/jenkins_home/spring-key.pem"
+
+        JAR_FILE = "build/libs/demo-api-0.0.1-SNAPSHOT.jar"
     }
 
     stages {
@@ -45,9 +50,9 @@ pipeline {
         stage('Copy JAR to EC2') {
             steps {
                 sh """
-                scp -o StrictHostKeyChecking=no \
-                build/libs/*.jar \
-                ${EC2_USER}@${EC2_HOST}:/home/deploy/app/app.jar
+                scp -i ${SSH_KEY} -o StrictHostKeyChecking=no \
+                ${JAR_FILE} \
+                ${EC2_USER}@${EC2_HOST}:/home/ubuntu/app/app.jar
                 """
             }
         }
@@ -55,16 +60,16 @@ pipeline {
         stage('Deploy in EC2') {
             steps {
                 sh """
-                ssh -o StrictHostKeyChecking=no ${EC2_USER}@${EC2_HOST} '
-                
-                echo "Stopping old app..."
+                ssh -i ${SSH_KEY} -o StrictHostKeyChecking=no ${EC2_USER}@${EC2_HOST} '
+
+                echo "Stopping old application..."
                 pkill -f app.jar || true
-                
-                echo "Starting new app..."
-                nohup java -jar /home/deploy/app/app.jar > app.log 2>&1 &
-                
-                echo "Application deployed!"
-                
+
+                echo "Starting new application..."
+                nohup java -jar /home/ubuntu/app/app.jar > /home/ubuntu/app/app.log 2>&1 &
+
+                echo "Deployment finished"
+
                 '
                 """
             }
@@ -75,11 +80,11 @@ pipeline {
     post {
 
         success {
-            echo '✅ CI/CD SUCCESS - APP DEPLOYED'
+            echo '✅ CI/CD SUCCESS - Application deployed'
         }
 
         failure {
-            echo '❌ PIPELINE FAILED'
+            echo '❌ CI/CD FAILED'
         }
 
     }
