@@ -8,7 +8,6 @@ pipeline {
 
         EC2_HOST = "44.210.133.71"
         EC2_USER = "ubuntu"
-
         SSH_KEY = "/var/jenkins_home/spring-key.pem"
 
         JAR_FILE = "build/libs/demo-api-0.0.1-SNAPSHOT.jar"
@@ -60,7 +59,7 @@ pipeline {
         stage('Deploy in EC2') {
             steps {
                 sh """
-                ssh -i ${SSH_KEY} -o StrictHostKeyChecking=no ${EC2_USER}@${EC2_HOST} '
+                ssh -i ${SSH_KEY} -o StrictHostKeyChecking=no ${EC2_USER}@${EC2_HOST} << 'EOF'
 
                 echo "Stopping old application..."
                 pkill -f app.jar || true
@@ -70,7 +69,7 @@ pipeline {
 
                 echo "Deployment finished"
 
-                '
+                EOF
                 """
             }
         }
