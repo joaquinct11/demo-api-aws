@@ -34,18 +34,21 @@ pipeline {
             steps {
                 sshagent(['ssh-agent']) {
                     sh """
-                        echo "Creando carpeta en EC2..."
-                        ssh -o StrictHostKeyChecking=no ubuntu@${EC2_IP} "mkdir -p /home/ubuntu/app"
-        
-                        echo "Subiendo el JAR..."
+                        ssh -o StrictHostKeyChecking=no ubuntu@${EC2_IP} '
+                            mkdir -p /home/ubuntu/app &&
+                            pkill -f app.jar || true &&
+                            cd /home/ubuntu/app &&
+                            rm -f app.jar app.log &&
+                            exit
+                        '
                         scp -o StrictHostKeyChecking=no ${JAR_FILE} ubuntu@${EC2_IP}:/home/ubuntu/app/app.jar
-        
-                        echo "Reiniciando la app..."
-                        ssh -o StrictHostKeyChecking=no ubuntu@${EC2_IP} "pkill -f app.jar || true && cd /home/ubuntu/app && nohup java -jar app.jar > app.log 2>&1 &"
+                        ssh -o StrictHostKeyChecking=no ubuntu@${EC2_IP} '
+                            cd /home/ubuntu/app &&
+                            nohup java -jar app.jar > app.log 2>&1 &
+                        '
                     """
                 }
             }
         }
-
     }
 }
