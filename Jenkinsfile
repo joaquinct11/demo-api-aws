@@ -1,6 +1,5 @@
 pipeline {
     agent any
-
     environment {
         EC2_IP = "98.81.24.205"
     }
@@ -8,7 +7,7 @@ pipeline {
     stages {
         stage('Checkout') {
             steps {
-                git branch: 'main', url: 'https://github.com/joaquinct11/demo-api-aws.git'
+                git branch: 'main', url: 'https://github.com/joaquinct11/demo-api-aws'
             }
         }
 
@@ -22,6 +21,7 @@ pipeline {
         stage('Prepare Jar') {
             steps {
                 script {
+                    // Tomamos el .jar que no tiene "plain" en el nombre
                     def jarFiles = sh(script: "ls build/libs/*.jar | grep -v plain", returnStdout: true).trim()
                     env.JAR_FILE = jarFiles.split("\n")[0]
                     echo "Jar to deploy: ${env.JAR_FILE}"
@@ -33,16 +33,16 @@ pipeline {
             steps {
                 sshagent(['ssh-agent']) {
                     sh """
-                scp -o StrictHostKeyChecking=no ${JAR_FILE} ubuntu@${EC2_IP}:/home/ubuntu/app/app.jar
-
-                ssh -o StrictHostKeyChecking=no ubuntu@${EC2_IP} << 'ENDSSH'
-                    mkdir -p /home/ubuntu/app
-                    pkill -f app.jar || true
-                    rm -f /home/ubuntu/app/app.log
-                    cd /home/ubuntu/app
-                    nohup java -jar app.jar > app.log 2>&1 &
-                ENDSSH
-            """
+                        echo "Deploying app..."
+                        ssh -o StrictHostKeyChecking=no ubuntu@${EC2_IP} << 'ENDSSH'
+                            mkdir -p /home/ubuntu/app
+                            pkill -f app.jar || true
+                            cd /home/ubuntu/app
+                            nohup java -jar app.jar > app.log 2>&1 &
+                            echo "Deployment done"
+                            exit 0
+                        ENDSSH
+                    """
                 }
             }
         }
