@@ -1,13 +1,15 @@
 pipeline {
     agent any
+
     environment {
         EC2_IP = "98.81.24.205"
     }
 
     stages {
+
         stage('Checkout') {
             steps {
-                git branch: 'main', url: 'https://github.com/joaquinct11/demo-api-aws'
+                git branch: 'main', url: 'https://github.com/joaquinct11/demo-api-aws.git'
             }
         }
 
@@ -21,7 +23,6 @@ pipeline {
         stage('Prepare Jar') {
             steps {
                 script {
-                    // Tomamos el .jar que no tiene "plain" en el nombre
                     def jarFiles = sh(script: "ls build/libs/*.jar | grep -v plain", returnStdout: true).trim()
                     env.JAR_FILE = jarFiles.split("\n")[0]
                     echo "Jar to deploy: ${env.JAR_FILE}"
@@ -31,19 +32,24 @@ pipeline {
 
         stage('Deploy to EC2') {
             steps {
-                sshagent(['ssh-agent']) { // <- ID de la credencial en Jenkins
-                    sh '''
+                sshagent(['ssh-agent']) {
+                    sh """
                         echo "Creando carpeta en EC2..."
-                        ssh -o StrictHostKeyChecking=no ubuntu@98.81.24.205 "mkdir -p /home/ubuntu/app/"
+                        ssh -o StrictHostKeyChecking=no ubuntu@${EC2_IP} "mkdir -p /home/ubuntu/app"
 
                         echo "Subiendo el JAR..."
-                        scp -o StrictHostKeyChecking=no build/libs/demo-api-0.0.1-SNAPSHOT.jar ubuntu@98.81.24.205:/home/ubuntu/app/app.jar
+                        scp -o StrictHostKeyChecking=no ${JAR_FILE} ubuntu@${EC2_IP}:/home/ubuntu/app/app.jar
 
                         echo "Reiniciando la app..."
-                        ssh -o StrictHostKeyChecking=no ubuntu@98.81.24.205 "pkill -f app.jar || true && nohup java -jar /home/ubuntu/app/app.jar > /home/ubuntu/app/app.log 2>&1 &"
-                    '''
+                        ssh -o StrictHostKeyChecking=no ubuntu@${EC2_IP} '
+                            pkill -f app.jar || true
+                            cd /home/ubuntu/app
+                            nohup java -jar app.jar > app.log 2>&1 &
+                        '
+                    """
                 }
             }
         }
+
     }
 }
