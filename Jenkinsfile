@@ -36,16 +36,12 @@ pipeline {
                     sh """
                         echo "Creando carpeta en EC2..."
                         ssh -o StrictHostKeyChecking=no ubuntu@${EC2_IP} "mkdir -p /home/ubuntu/app"
-
+        
                         echo "Subiendo el JAR..."
                         scp -o StrictHostKeyChecking=no ${JAR_FILE} ubuntu@${EC2_IP}:/home/ubuntu/app/app.jar
-
+        
                         echo "Reiniciando la app..."
-                        ssh -o StrictHostKeyChecking=no ubuntu@${EC2_IP} << 'EOF'
-                            pkill -f app.jar || true
-                            cd /home/ubuntu/app
-                            nohup java -jar app.jar > app.log 2>&1 &
-                        EOF
+                        ssh -o StrictHostKeyChecking=no ubuntu@${EC2_IP} "pkill -f app.jar || true && cd /home/ubuntu/app && nohup java -jar app.jar > app.log 2>&1 &"
                     """
                 }
             }
