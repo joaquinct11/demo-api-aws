@@ -11,23 +11,23 @@ pipeline {
             }
         }
 
-//        stage('Build') {
-//            steps {
-//                sh 'chmod +x gradlew'
-//                sh './gradlew clean build'
-//            }
-//        }
-//
-//        stage('Prepare Jar') {
-//            steps {
-//                script {
-//                    // Tomamos el .jar que no tiene "plain" en el nombre
-//                    def jarFiles = sh(script: "ls build/libs/*.jar | grep -v plain", returnStdout: true).trim()
-//                    env.JAR_FILE = jarFiles.split("\n")[0]
-//                    echo "Jar to deploy: ${env.JAR_FILE}"
-//                }
-//            }
-//        }
+        stage('Build') {
+            steps {
+                sh 'chmod +x gradlew'
+                sh './gradlew clean build'
+            }
+        }
+
+        stage('Prepare Jar') {
+            steps {
+                script {
+                    // Tomamos el .jar que no tiene "plain" en el nombre
+                    def jarFiles = sh(script: "ls build/libs/*.jar | grep -v plain", returnStdout: true).trim()
+                    env.JAR_FILE = jarFiles.split("\n")[0]
+                    echo "Jar to deploy: ${env.JAR_FILE}"
+                }
+            }
+        }
 //
 //        stage('Deploy to EC2') {
 //            steps {
