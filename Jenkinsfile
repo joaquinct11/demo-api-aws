@@ -47,8 +47,8 @@ pipeline {
                     # Arrancar la app en segundo plano y guardar logs
                     nohup java -jar /home/ubuntu/app/app.jar > /home/ubuntu/app/app.log 2>&1 &
 
-                    # Guardar PID para futuros reinicios
-                    echo \$! > /home/ubuntu/app/app.pid
+                    # Guardar PID real del proceso para futuros reinicios
+                    echo \\$! > /home/ubuntu/app/app.pid
                 "
             '''
                 }
