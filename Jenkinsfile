@@ -35,18 +35,12 @@ pipeline {
                     sh """
                 echo "Deploying ${env.JAR_FILE} to EC2 ${EC2_IP}"
 
-                # Crear carpeta en EC2
-                ssh -o StrictHostKeyChecking=no ubuntu@${EC2_IP} "mkdir -p /home/ubuntu/app"
-
-                # Copiar jar
-                scp -o StrictHostKeyChecking=no ${env.JAR_FILE} ubuntu@${EC2_IP}:/home/ubuntu/app/app.jar
-
-                # Detener app existente y arrancar en background, ignorando código de salida
                 ssh -o StrictHostKeyChecking=no ubuntu@${EC2_IP} '
+                    mkdir -p /home/ubuntu/app
                     pkill -f "java -jar app.jar" || true
                     sleep 2
                     cd /home/ubuntu/app
-                    setsid java -jar app.jar > app.log 2>&1 < /dev/null & || true
+                    nohup java -jar app.jar > app.log 2>&1 < /dev/null &
                 '
             """
                 }
