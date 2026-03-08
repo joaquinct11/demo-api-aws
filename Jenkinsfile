@@ -1,7 +1,12 @@
 pipeline {
     agent any
+
     environment {
-        EC2_IP = "98.81.24.205"
+        // Configura tu usuario y host de EC2
+        EC2_USER = 'ubuntu'
+        EC2_HOST = '98.81.24.205'
+        // Ruta donde se desplegará la app
+        DEPLOY_PATH = '/home/ubuntu/app'
     }
 
     stages {
@@ -13,39 +18,30 @@ pipeline {
 
         stage('Build') {
             steps {
-                sh 'chmod +x gradlew'
-                sh './gradlew clean bootJar'
+                sh './gradlew clean build'
             }
         }
 
-        stage('Prepare Jar') {
+        stage('Deploy') {
             steps {
-                script {
-                    def jarFiles = sh(script: "ls build/libs/*.jar | grep -v plain", returnStdout: true).trim()
-                    env.JAR_FILE = jarFiles.split("\n")[0]
-                    echo "Jar to deploy: ${env.JAR_FILE}"
-                }
-            }
-        }
-
-        stage('Deploy to EC2') {
-            steps {
+                // Copiamos el artefacto al servidor EC2
                 sshagent(['ssh-agent']) {
-                    // Aquí Jenkins ignorará el error de exit code 255
-                    script {
-                        sh(script: """
-                            echo "Deploying ${env.JAR_FILE} to EC2 ${EC2_IP}"
-                            ssh -o StrictHostKeyChecking=no ubuntu@${EC2_IP} '
-                                mkdir -p /home/ubuntu/app
-                                pkill -f "java -jar app.jar" || true
-                                sleep 2
-                                cd /home/ubuntu/app
-                                nohup java -jar app.jar > app.log 2>&1 < /dev/null &
-                            '
-                        """, returnStatus: true)
-                    }
+                    sh """
+                        scp build/libs/*.jar ${EC2_USER}@${EC2_HOST}:${DEPLOY_PATH}/app.jar
+                        ssh ${EC2_USER}@${EC2_HOST} 'pkill -f app.jar || true'
+                        ssh ${EC2_USER}@${EC2_HOST} 'nohup java -jar ${DEPLOY_PATH}/app.jar > ${DEPLOY_PATH}/app.log 2>&1 &'
+                    """
                 }
             }
+        }
+    }
+
+    post {
+        success {
+            echo 'Deploy completado exitosamente!'
+        }
+        failure {
+            echo 'El deploy falló 😢'
         }
     }
 }
