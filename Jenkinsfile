@@ -1,12 +1,7 @@
 pipeline {
     agent any
-
     environment {
-        // Configura tu usuario y host de EC2
-        EC2_USER = 'ubuntu'
-        EC2_HOST = '98.81.24.205'
-        // Ruta donde se desplegará la app
-        DEPLOY_PATH = '/home/ubuntu/app'
+        EC2_IP = "98.81.24.205"
     }
 
     stages {
@@ -18,30 +13,37 @@ pipeline {
 
         stage('Build') {
             steps {
-                sh 'chmod +x ./gradlew && ./gradlew clean build'
+                sh 'chmod +x gradlew'
+//                sh './gradlew clean build'
+                sh './gradlew clean bootJar'
             }
         }
 
-        stage('Deploy') {
+        stage('Prepare Jar') {
             steps {
-                // Copiamos el artefacto al servidor EC2
-                sshagent(['ssh-agent']) {
-                    sh """
-                        scp build/libs/*.jar ${EC2_USER}@${EC2_HOST}:${DEPLOY_PATH}/app.jar
-                        ssh ${EC2_USER}@${EC2_HOST} 'pkill -f app.jar || true'
-                        ssh ${EC2_USER}@${EC2_HOST} 'nohup java -jar ${DEPLOY_PATH}/app.jar > ${DEPLOY_PATH}/app.log 2>&1 &'
-                    """
+                script {
+                    // Tomamos el .jar que no tiene "plain" en el nombre
+                    def jarFiles = sh(script: "ls build/libs/*.jar | grep -v plain", returnStdout: true).trim()
+                    env.JAR_FILE = jarFiles.split("\n")[0]
+                    echo "Jar to deploy: ${env.JAR_FILE}"
                 }
             }
         }
-    }
 
-    post {
-        success {
-            echo 'Deploy completado exitosamente!'
-        }
-        failure {
-            echo 'El deploy falló 😢'
+        stage('Deploy to EC2') {
+            steps {
+                sshagent(['ssh-agent']) {
+                    sh """
+                        ls -lah build/libs
+        
+                        ssh -o StrictHostKeyChecking=no ubuntu@${EC2_IP} "mkdir -p /home/ubuntu/app"
+        
+                        scp -o StrictHostKeyChecking=no build/libs/demo-api-0.0.1-SNAPSHOT.jar ubuntu@${EC2_IP}:/home/ubuntu/app/app.jar
+        
+                        ssh -o StrictHostKeyChecking=no ubuntu@${EC2_IP} "pkill -f 'java -jar app.jar' || true && sleep 2 && cd /home/ubuntu/app && nohup java -jar app.jar > app.log 2>&1 &"
+                    """
+                }
+            }
         }
     }
 }
