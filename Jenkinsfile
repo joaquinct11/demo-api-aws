@@ -34,19 +34,14 @@ pipeline {
             steps {
                 sshagent(['ssh-agent']) {
                     sh """
-                ls -lah build/libs
-
-                ssh -o StrictHostKeyChecking=no ubuntu@${EC2_IP} "mkdir -p /home/ubuntu/app"
-
-                scp -o StrictHostKeyChecking=no build/libs/demo-api-0.0.1-SNAPSHOT.jar ubuntu@${EC2_IP}:/home/ubuntu/app/app.jar
-
-                ssh -o StrictHostKeyChecking=no ubuntu@${EC2_IP} << 'EOF'
-                pkill -f "java -jar app.jar" || true
-                sleep 2
-                cd /home/ubuntu/app
-                nohup java -jar app.jar > app.log 2>&1 &
-                EOF
-            """
+                        ls -lah build/libs
+        
+                        ssh -o StrictHostKeyChecking=no ubuntu@${EC2_IP} "mkdir -p /home/ubuntu/app"
+        
+                        scp -o StrictHostKeyChecking=no build/libs/demo-api-0.0.1-SNAPSHOT.jar ubuntu@${EC2_IP}:/home/ubuntu/app/app.jar
+        
+                        ssh -o StrictHostKeyChecking=no ubuntu@${EC2_IP} "pkill -f 'java -jar app.jar' || true && sleep 2 && cd /home/ubuntu/app && nohup java -jar app.jar > app.log 2>&1 &"
+                    """
                 }
             }
         }
