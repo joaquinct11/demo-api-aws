@@ -39,6 +39,9 @@ pipeline {
         
                         echo "Copying new JAR to EC2..."
                         scp -o StrictHostKeyChecking=no ${JAR_FILE} ubuntu@${EC2_IP}:/home/ubuntu/app/app.jar
+
+                        echo "Killing old application..."
+                        ssh -o StrictHostKeyChecking=no ubuntu@${EC2_IP} "pkill -f app.jar || true"
         
                         echo "Restarting application..."
                         ssh -f -o StrictHostKeyChecking=no ubuntu@${EC2_IP} "cd /home/ubuntu/app && nohup java -jar app.jar > app.log 2>&1 &"
