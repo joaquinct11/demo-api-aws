@@ -40,7 +40,7 @@ pipeline {
         
                         scp -o StrictHostKeyChecking=no build/libs/demo-api-0.0.1-SNAPSHOT.jar ubuntu@${EC2_IP}:/home/ubuntu/app/app.jar
         
-                        ssh -o StrictHostKeyChecking=no ubuntu@${EC2_IP} "pkill -f 'java -jar app.jar' || true && sleep 2 && cd /home/ubuntu/app && nohup java -jar app.jar --server.address=0.0.0.0 > app.log 2>&1 &"
+                        ssh -o StrictHostKeyChecking=no ubuntu@${EC2_IP} "pkill -f 'java -jar app.jar' || true && sleep 2 && cd /home/ubuntu/app && nohup setsid java -jar app.jar --server.address=0.0.0.0 > app.log 2>&1 &"
                     """
                 }
             }
