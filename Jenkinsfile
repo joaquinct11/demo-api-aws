@@ -34,6 +34,8 @@ pipeline {
             steps {
                 sshagent(['ssh-agent']) {
                     sh """
+                        set +e
+                        
                         echo "Creating app directory..."
                         ssh -o StrictHostKeyChecking=no ubuntu@${EC2_IP} "mkdir -p /home/ubuntu/app"
         
@@ -41,11 +43,10 @@ pipeline {
                         scp -o StrictHostKeyChecking=no ${JAR_FILE} ubuntu@${EC2_IP}:/home/ubuntu/app/app.jar
 
                         echo "Killing old application..."
-                        ssh -o StrictHostKeyChecking=no ubuntu@${EC2_IP} "pkill -f app.jar || true"
+                        ssh -o StrictHostKeyChecking=no ubuntu@${EC2_IP} "pkill -f app.jar"
         
                         echo "Restarting application..."
-//                        ssh -f -o StrictHostKeyChecking=no ubuntu@${EC2_IP} "cd /home/ubuntu/app && nohup java -jar app.jar > app.log 2>&1 &"
-                        ssh  -o StrictHostKeyChecking=no ubuntu@${EC2_IP} "cd /home/ubuntu/app && nohup java -jar app.jar > app.log 2>&1 &"
+                        ssh -f -o StrictHostKeyChecking=no ubuntu@${EC2_IP} "cd /home/ubuntu/app && nohup java -jar app.jar > app.log 2>&1 &"
         
                         echo "Deployment completed"
                     """
