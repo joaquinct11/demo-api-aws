@@ -14,8 +14,8 @@ pipeline {
         stage('Build') {
             steps {
                 sh 'chmod +x gradlew'
-//                sh './gradlew clean build'
-                sh './gradlew clean bootJar'
+                sh './gradlew clean build'
+//                sh './gradlew clean bootJar'
             }
         }
 
@@ -34,13 +34,16 @@ pipeline {
             steps {
                 sshagent(['ssh-agent']) {
                     sh """
-                        ls -lah build/libs
-        
+                        echo "Creating app directory..."
                         ssh -o StrictHostKeyChecking=no ubuntu@${EC2_IP} "mkdir -p /home/ubuntu/app"
         
-                        scp -o StrictHostKeyChecking=no build/libs/demo-api-0.0.1-SNAPSHOT.jar ubuntu@${EC2_IP}:/home/ubuntu/app/app.jar
+                        echo "Copying new JAR to EC2..."
+                        scp -o StrictHostKeyChecking=no ${JAR_FILE} ubuntu@${EC2_IP}:/home/ubuntu/app/app.jar
         
-                        ssh -o StrictHostKeyChecking=no ubuntu@${EC2_IP} "pkill -f 'java -jar app.jar' || true && sleep 2 && cd /home/ubuntu/app && nohup setsid java -jar app.jar --server.address=0.0.0.0 > app.log 2>&1 &"
+                        echo "Restarting application..."
+                        ssh -o StrictHostKeyChecking=no ubuntu@${EC2_IP} "nohup java -jar app.jar > app.log 2>&1 &"
+        
+                        echo "Deployment completed"
                     """
                 }
             }
