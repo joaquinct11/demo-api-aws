@@ -7,7 +7,7 @@ pipeline {
     stages {
         stage('Checkout') {
             steps {
-                git branch: 'main', url: 'https://github.com/joaquinct11/demo-api-aws'
+                git branch: 'main', url: 'https://github.com/joaquinct11/demo-api-aws.git'
             }
         }
 
@@ -41,7 +41,7 @@ pipeline {
                         scp -o StrictHostKeyChecking=no ${JAR_FILE} ubuntu@${EC2_IP}:/home/ubuntu/app/app.jar
         
                         echo "Restarting application..."
-                        ssh -o StrictHostKeyChecking=no ubuntu@${EC2_IP} "cd /home/ubuntu/app && setsid nohup java -jar app.jar > app.log 2>&1 < /dev/null &"
+                        ssh -f -o StrictHostKeyChecking=no ubuntu@${EC2_IP} "cd /home/ubuntu/app && nohup java -jar app.jar > app.log 2>&1 &"
         
                         echo "Deployment completed"
                     """
