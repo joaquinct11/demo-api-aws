@@ -23,8 +23,7 @@ pipeline {
             steps {
                 script {
                     // Tomamos el .jar que no tiene "plain" en el nombre
-                    def jarFiles = sh(script: "ls build/libs/*.jar | grep -v plain", returnStdout: true).trim()
-                    env.JAR_FILE = jarFiles.split("\n")[0]
+                    env.JAR_FILE = "build/libs/demo-0.0.1-SNAPSHOT.jar"
                     echo "Jar to deploy: ${env.JAR_FILE}"
                 }
             }
@@ -34,16 +33,16 @@ pipeline {
             steps {
                 sshagent(['ssh-agent']) {
                     sh """
-                        echo "Creating app directory..."
                         ssh -o StrictHostKeyChecking=no ubuntu@${EC2_IP} "mkdir -p /home/ubuntu/app"
         
-                        echo "Copying new JAR to EC2..."
                         scp -o StrictHostKeyChecking=no ${JAR_FILE} ubuntu@${EC2_IP}:/home/ubuntu/app/app.jar
         
-                        echo "Restarting application..."
-                        ssh -o StrictHostKeyChecking=no ubuntu@${EC2_IP} "pkill -f app.jar || true && cd /home/ubuntu/app && nohup java -jar app.jar > app.log 2>&1 &"
-        
-                        echo "Deployment completed"
+                        ssh -o StrictHostKeyChecking=no ubuntu@${EC2_IP} "
+                            pkill -f 'java -jar app.jar' || true
+                            sleep 2
+                            cd /home/ubuntu/app
+                            nohup java -jar app.jar > app.log 2>&1 &
+                        "
                     """
                 }
             }
