@@ -2,6 +2,7 @@ plugins {
 	id 'java'
 	id 'org.springframework.boot' version '3.3.5'
 	id 'io.spring.dependency-management' version '1.1.7'
+	id "org.sonarqube" version "5.0.0.4638"
 }
 
 group = 'com.example'
@@ -27,4 +28,11 @@ dependencies {
 
 tasks.named('test') {
 	useJUnitPlatform()
+}
+
+sonarqube {
+	properties {
+		property "sonar.projectKey", "sonar-ci"
+		property "sonar.projectName", "demo-api"
+	}
 }

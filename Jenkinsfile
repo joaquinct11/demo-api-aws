@@ -19,6 +19,14 @@ pipeline {
             }
         }
 
+        stage('SonarQube Analysis') {
+            steps {
+                withSonarQubeEnv('sonarqube') {
+                    sh './gradlew sonarqube'
+                }
+            }
+        }
+
         stage('Prepare Jar') {
             steps {
                 script {

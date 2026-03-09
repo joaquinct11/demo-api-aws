@@ -38,3 +38,8 @@ out/
 
 
 jenkins_home/
+
+# SonarQube
+sonarqube_data/
+sonarqube_db/
+sonarqube_extensions/
