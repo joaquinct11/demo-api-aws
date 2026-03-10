@@ -11,4 +11,9 @@ public class HelloController {
         return "Hello from Spring Boot on AWS EC2 !";
     }
 
+    @GetMapping("/version")
+    public String version(){
+        return "v1.0.0";
+    }
+
 }
